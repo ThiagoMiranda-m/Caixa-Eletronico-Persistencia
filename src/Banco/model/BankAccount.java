@@ -1,31 +1,22 @@
 package Banco.model;
 
 public class BankAccount {
-    private String ID;
-    private double AccountBalance;
-    private boolean StatusAccount;
+    private String id;
+    private double saldo;
 
-    public double getAccountBalance() {
-        return AccountBalance;
+    public double getSaldo() {
+        return saldo;
     }
 
-    public void setAccountBalance(double accountBalance) {
-        AccountBalance = accountBalance;
+    public void setSaldo(double saldo) {
+        saldo = saldo;
     }
 
-    public boolean isStatusAccount() {
-        return StatusAccount;
+    public String getId() {
+        return id;
     }
 
-    public void setStatusAccount(boolean statusAccount) {
-        StatusAccount = statusAccount;
-    }
-
-    public String getID() {
-        return ID;
-    }
-
-    public void setID(String ID) {
-        this.ID = ID;
+    public void setId(String id) {
+        this.id = id;
     }
 }

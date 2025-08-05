@@ -1,11 +1,19 @@
 package Banco.Service;
 
+import Banco.model.BankAccount;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.*;
-import java.util.*;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AccountServices {
+    private static final String ACCOUNT_FILE = "Accounts.json";
+    private final Gson gson = new Gson();
 
-    public void criarContaBanco(int idUsuario) {
+    public void criarContaBanco(String idUsuario) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("Accounts.txt", true))) {
             writer.write(idUsuario + ", 0.0");
             writer.newLine();
@@ -22,23 +30,37 @@ public class AccountServices {
 
         do {
             System.out.println("\n====== Menu do Usuário ======");
-            System.out.println("1 - Verificar saldo");
-            System.out.println("2 - Fazer transferência (em construção)");
-            System.out.println("3 - Excluir conta");
-            System.out.println("4 - Depósito");
+            System.out.println("1 - Ver Saldo");
+            System.out.println("2 - Depositar");
+            System.out.println("3 - Sacar");
+            System.out.println("4 - Transferir");
+            System.out.println("5 - Ver histórico");
+            System.out.println("6 - Excluir conta");
             System.out.println("0 - Sair");
             System.out.print("Opção: ");
             option = scan.nextInt();
 
             switch (option) {
                 case 1 -> mostrarSaldo(idLogado);
-                case 2 -> System.out.println("🚧 Em construção...");
-                case 3 -> deletarConta(idLogado);
-                case 4 -> {
+                case 2 -> {
                     System.out.println("Digite o valor do depósito: ");
-                    double valor = scan.nextDouble();
-                    operations.depositar(idLogado, valor);
+                    double valor1 = scan.nextDouble();
+                    operations.depositar(idLogado, valor1);
                 }
+                case 3 ->{
+                    System.out.println("Digite o valor do saque: ");
+                    double valor1 = scan.nextDouble();
+                    operations.depositar(idLogado, valor1);
+                }
+                case 4 -> {
+                    System.out.println("Para quem vocẽ irá transferir? ");
+                    String idEnviado = scan.next();
+                    System.out.println("Digite o valor da transferência: ");
+                    double valor1 = scan.nextDouble();
+                    operations.transferirPorID(idLogado, idEnviado, valor1);
+                }
+                case 5 -> System.out.println("Em construção...");
+                case 6 -> deletarConta(idLogado);
                 case 0 -> System.out.println("Saindo...");
                 default -> System.out.println("❌ Opção inválida.");
             }

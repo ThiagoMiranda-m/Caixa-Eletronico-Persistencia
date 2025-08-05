@@ -97,7 +97,7 @@ public class BankOperations {
             while ((linha = leitor.readLine()) != null) {
                 String[] partes = linha.split(", ");
                 String id = partes[0];
-                double saldo = Double.parseDouble(partes[1]);
+                double saldo = Double.parseDouble(partes[1].replace(",", "."));
 
                 if (id.equals(idEnviou)) {
                     if (valor > saldo) {
@@ -105,11 +105,11 @@ public class BankOperations {
                         return;
                     }
                     double novoSaldo = saldo - valor;
-                    contasAtualizadas.add(id + ", " + String.format("%.2f", novoSaldo));
+                    contasAtualizadas.add(id + ", " + String.format(Locale.US, "%.2f", novoSaldo));
                     encontrouRemetente = true;
                 } else if (id.equals(idRecebeu)) {
                     double novoSaldo = saldo + valor;
-                    contasAtualizadas.add(id + ", " + String.format("%.2f", novoSaldo));
+                    contasAtualizadas.add(id + ", " + String.format(Locale.US, "%.2f", novoSaldo));
                     encontrouDestinatario = true;
                 } else {
                     contasAtualizadas.add(linha);

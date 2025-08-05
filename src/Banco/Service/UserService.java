@@ -1,13 +1,26 @@
 package Banco.Service;
 
 import Banco.model.User;
-import java.io.*;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Type;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
-public class UserService {
 
-    // Método para hashear a senha com SHA-256
+public class UserService {
+    private static final String USER_FILE = "Cadastro.json";
+    private final Gson gson = new Gson();
+
+    // Gera hash SHA-256 da senha
     public static String hashSenha(String senha) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -20,25 +33,35 @@ public class UserService {
         }
     }
 
-    // Gera um novo ID baseado no maior ID já existente
-    public int gerarNovoID() {
+    public int gerarNovoID(){
+        List<User> users = carregarUsuarios();
         int maxId = 0;
-        try (BufferedReader leitor = new BufferedReader(new FileReader("Cadastro.txt"))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                if (partes.length > 0 && partes[0].matches("\\d+")) {
-                    int idAtual = Integer.parseInt(partes[0]);
-                    if (idAtual > maxId) maxId = idAtual;
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Erro ao ler arquivo de cadastro: " + e.getMessage());
+        for (User user : users){
+            int id = Integer.parseInt(user.getId());
+            if (id > maxId) maxId = id;
         }
         return maxId + 1;
     }
 
-    // Registro de novo usuário
+    private List<User> carregarUsuarios() {
+        try (Reader reader = new FileReader(USER_FILE)) {
+            Type listType = new TypeToken<List<User>>() {}.getType();
+            List<User> users = gson.fromJson(reader, listType);
+            return users != null ? users : new ArrayList<>();
+            } catch (IOException e){
+            return new ArrayList<>();
+        }
+    }
+
+    private void salvarUsuarios(List<User> users){
+        try(Writer writer = new FileWriter(USER_FILE)) {
+            gson.toJson(users, writer);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar usuários: " + e.getMessage());
+        }
+    }
+
+    // Registro de usuário
     public void register() {
         Scanner scan = new Scanner(System.in);
         User user = new User();
@@ -50,19 +73,21 @@ public class UserService {
         user.setUserName(scan.next());
 
         System.out.print("Digite a sua senha: ");
-        user.setSenha(scan.next());
+        String senhaOriginal = scan.next();
+        user.setSenhaHash(hashSenha(senhaOriginal));
 
+        // Gera um ID único com UUID
         int novoID = gerarNovoID();
+        user.setId(String.valueOf(novoID));
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("Cadastro.txt", true))) {
-            writer.write(novoID + ", " + user.getUserName() + ", " + user.getCPF() + ", " + hashSenha(user.getSenha()));
-            writer.newLine();
-            System.out.println("✅ Conta cadastrada com sucesso!");
-            new AccountServices().criarContaBanco(novoID); // Cria conta bancária vinculada
-            login();
-        } catch (IOException e) {
-            System.out.println("Erro ao cadastrar usuário: " + e.getMessage());
-        }
+        // Lê e adiciona à lista
+        List<User> users =  carregarUsuarios();
+        users.add(user);
+        salvarUsuarios(users);
+
+        System.out.println("✅ Conta cadastrada com sucesso!");
+        new AccountServices().criarContaBanco(user.getId()); // Cria a conta bancária sincronizada
+        login();
     }
 
     // Login do usuário
@@ -71,39 +96,20 @@ public class UserService {
         AccountServices services = new AccountServices();
 
         System.out.print("Digite o seu CPF: ");
-        String cpfUser = scan.next();
+        String cpf = scan.next();
 
         System.out.print("Digite a sua senha: ");
-        String senhaHashed = hashSenha(scan.next());
+        String senhaHash = hashSenha(scan.next());
 
-        boolean encontrado = false;
-        String idLogado = "";
-
-        try (BufferedReader leitor = new BufferedReader(new FileReader("Cadastro.txt"))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                if (partes.length == 4) {
-                    String id = partes[0];
-                    String cpf = partes[2];
-                    String senha = partes[3];
-
-                    if (cpfUser.equals(cpf) && senhaHashed.equals(senha)) {
-                        encontrado = true;
-                        idLogado = id;
-                        break;
-                    }
-                }
+        List<User> users = carregarUsuarios();
+        for (User user : users) {
+            if (user.getCPF().equals(cpf) && user.getSenhaHash().equals(senhaHash)) {
+                System.out.println("✅ Login realizado com sucesso!");
+                services.menuUsuario(user.getId());
+                return;
             }
-        } catch (IOException e) {
-            System.out.println("Erro ao ler arquivo: " + e.getMessage());
         }
 
-        if (encontrado) {
-            System.out.println("✅ Login realizado com sucesso!");
-            services.menuUsuario(idLogado);
-        } else {
-            System.out.println("❌ CPF ou senha inválidos.");
-        }
+        System.out.println("❌ CPF ou senha incorretos.");
     }
 }
