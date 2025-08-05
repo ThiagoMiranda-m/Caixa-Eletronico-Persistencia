@@ -1,4 +1,6 @@
 package Banco.Service;
+import Banco.log.TransactionLogger;
+
 import java.io.*;
 import java.util.*;
 
@@ -43,9 +45,10 @@ public class BankOperations {
         }
 
         escreverContas(contasAtualizadas, "✅ Depósito realizado com sucesso.");
+        TransactionLogger.registrar("[DEPÓSITO] ID: " + idUsuario + " | Valor: R$ " + String.format("%.2f", valor));
     }
 
-    public void sake(String idUsuario, double valor) {
+    public void saque(String idUsuario, double valor) {
         if (isValorInvalido(valor)) return;
 
         List<String> contasAtualizadas = new ArrayList<>();
@@ -79,6 +82,7 @@ public class BankOperations {
         }
 
         escreverContas(contasAtualizadas, "✅ Saque realizado com sucesso.");
+        TransactionLogger.registrar("[SAQUE] ID: " + idUsuario + " | Valor: R$ " + String.format("%.2f", valor));
     }
 
     public void transferirPorID(String idEnviou, String idRecebeu, double valor) {
@@ -122,6 +126,7 @@ public class BankOperations {
         }
 
         escreverContas(contasAtualizadas, "✅ Transferência realizada com sucesso.");
+        TransactionLogger.registrarTransferencia(idEnviou, idRecebeu, valor);
     }
 
     private void escreverContas(List<String> contas, String mensagemSucesso) {
