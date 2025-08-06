@@ -1,5 +1,6 @@
 package Banco.Service;
 
+import Banco.log.TransactionLogger;
 import Banco.model.BankAccount;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -43,6 +44,7 @@ public class AccountServices {
     public void menuUsuario(String idLogado) {
         Scanner scan = new Scanner(System.in);
         BankOperations operations = new BankOperations();
+        TransactionLogger logger = new TransactionLogger();
         int option;
 
         do {
@@ -67,7 +69,7 @@ public class AccountServices {
                 case 3 ->{
                     System.out.println("Digite o valor do saque: ");
                     double valor1 = scan.nextDouble();
-                    operations.depositar(idLogado, valor1);
+                    operations.saque(idLogado, valor1);
                 }
                 case 4 -> {
                     System.out.println("Para quem vocẽ irá transferir? ");
@@ -76,7 +78,7 @@ public class AccountServices {
                     double valor1 = scan.nextDouble();
                     operations.transferirPorID(idLogado, idEnviado, valor1);
                 }
-                case 5 -> System.out.println("Em construção...");
+                case 5 -> logger.mostrarHistorcico(idLogado);
                 case 6 -> deletarConta(idLogado);
                 case 0 -> System.out.println("Saindo...");
                 default -> System.out.println("❌ Opção inválida.");
@@ -88,10 +90,10 @@ public class AccountServices {
 
     private List<BankAccount> carregarContas(){
         try(Reader reader = new FileReader(ACCOUNT_FILE)){
-            Type listType = new TypeToken<List<BankAccount>>(){}.getType();
-            List<BankAccount> contas = gson.fromJson(reader, listType);
-            return contas != null ? contas : new ArrayList<>();
+            Type listType = new TypeToken<List<BankAccount>>() {}.getType();
+            return new Gson().fromJson(reader, listType);
         } catch (IOException e) {
+            System.out.printf("Erro ao carregar contas: " + e.getMessage());
             return new ArrayList<>();
         }
     }

@@ -9,8 +9,9 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 public class BankOperations {
-    private final String ACCOUNT_FILE = "Accounts.txt";
+    private final String ACCOUNT_FILE = "Accounts.json";
     private final Gson gson = new Gson();
+    private final TransactionLogger logger = new TransactionLogger();
 
     private boolean isValorInvalido(double valor) {
         if (valor <= 0) {
@@ -26,20 +27,26 @@ public class BankOperations {
         List<BankAccount> contas = carregarContas();
         boolean encontrado = false;
 
+        System.out.println(idUsuario);
         for (BankAccount conta : contas) {
+            System.out.println(">> Verificando conta com ID: " + conta.getId());
             if (conta.getId().equals(idUsuario)) {
                 conta.setSaldo(conta.getSaldo() + valor);
                 encontrado = true;
                 break;
             }
+
         }
 
         if (encontrado) {
             salvarContas(contas);
             System.out.println("✅ Depósito realizado com sucesso.");
+            logger.registrarTransacao(idUsuario, "Depósito", valor);
         } else {
             System.out.println("❌ Conta não encontrada.");
         }
+
+
     }
 
     public void saque(String idUsuario, double valor) {
@@ -62,6 +69,7 @@ public class BankOperations {
         if (encontrado) {
             salvarContas(contas);
             System.out.println("✅ Saque realizado com sucesso.");
+            logger.registrarTransacao(idUsuario, "Saque", valor);
         } else {
             System.out.println("❌ Conta não encontrada.");
         }
@@ -96,17 +104,17 @@ public class BankOperations {
         Destinatario.setSaldo(Destinatario.getSaldo() + valor);
         salvarContas(contas);
         System.out.println("✅ Transferência realizada com sucesso.");
+        logger.registrarTransferencia(idEnviou, idRecebeu, "Transferência", valor);
     }
 
 
     /*============METODOS AUXILIARES==============*/
-
-    private List<BankAccount> carregarContas(){
-        try (Reader reader = new FileReader(ACCOUNT_FILE)) {
-            Type tipoLista = new TypeToken<List<BankAccount>>(){}.getType();
-            List<BankAccount> contas = gson.fromJson(reader, tipoLista);
-            return contas != null ? contas : new ArrayList<>();
+    private List<BankAccount> carregarContas() {
+        try (Reader reader = new FileReader("Accounts.json")) {
+            Type listType = new TypeToken<List<BankAccount>>() {}.getType();
+            return new Gson().fromJson(reader, listType);
         } catch (IOException e) {
+            System.out.println("Erro ao carregar contas: " + e.getMessage());
             return new ArrayList<>();
         }
     }

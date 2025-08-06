@@ -1,21 +1,13 @@
 package Banco.model;
 
 public class BankAccount {
+    private String id;
+    private double saldo;
+
 
     public BankAccount(String id, double saldo){
         this.id = id;
         this.saldo = saldo;
-    }
-
-    private String id;
-    private double saldo;
-
-    public double getSaldo() {
-        return saldo;
-    }
-
-    public void setSaldo(double saldo) {
-        saldo = saldo;
     }
 
     public String getId() {
@@ -24,5 +16,13 @@ public class BankAccount {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    public void setSaldo(double saldo) {
+        this.saldo = saldo;
     }
 }
