@@ -1,6 +1,12 @@
 package Banco.model;
 
 public class BankAccount {
+
+    public BankAccount(String id, double saldo){
+        this.id = id;
+        this.saldo = saldo;
+    }
+
     private String id;
     private double saldo;
 

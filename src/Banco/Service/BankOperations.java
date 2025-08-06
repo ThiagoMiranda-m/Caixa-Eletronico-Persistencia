@@ -1,11 +1,16 @@
 package Banco.Service;
 import Banco.log.TransactionLogger;
+import Banco.model.BankAccount;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.util.*;
 
 public class BankOperations {
     private final String ACCOUNT_FILE = "Accounts.txt";
+    private final Gson gson = new Gson();
 
     private boolean isValorInvalido(double valor) {
         if (valor <= 0) {
@@ -18,126 +23,99 @@ public class BankOperations {
     public void depositar(String idUsuario, double valor) {
         if (isValorInvalido(valor)) return;
 
-        List<String> contasAtualizadas = new ArrayList<>();
+        List<BankAccount> contas = carregarContas();
         boolean encontrado = false;
 
-        try (BufferedReader leitor = new BufferedReader(new FileReader(ACCOUNT_FILE))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                if (partes.length == 2 && partes[0].equals(idUsuario)) {
-                    double saldoAtual = Double.parseDouble(partes[1]);
-                    double novoSaldo = saldoAtual + valor;
-                    contasAtualizadas.add(idUsuario + ", " + String.format("%.2f", novoSaldo));
-                    encontrado = true;
-                } else {
-                    contasAtualizadas.add(linha);
-                }
+        for (BankAccount conta : contas) {
+            if (conta.getId().equals(idUsuario)) {
+                conta.setSaldo(conta.getSaldo() + valor);
+                encontrado = true;
+                break;
             }
-        } catch (IOException e) {
-            System.out.println("Erro ao ler contas: " + e.getMessage());
-            return;
         }
 
-        if (!encontrado) {
+        if (encontrado) {
+            salvarContas(contas);
+            System.out.println("✅ Depósito realizado com sucesso.");
+        } else {
             System.out.println("❌ Conta não encontrada.");
-            return;
         }
-
-        escreverContas(contasAtualizadas, "✅ Depósito realizado com sucesso.");
-        TransactionLogger.registrar("[DEPÓSITO] ID: " + idUsuario + " | Valor: R$ " + String.format("%.2f", valor));
     }
 
     public void saque(String idUsuario, double valor) {
         if (isValorInvalido(valor)) return;
 
-        List<String> contasAtualizadas = new ArrayList<>();
+        List<BankAccount> contas = carregarContas();
         boolean encontrado = false;
 
-        try (BufferedReader leitor = new BufferedReader(new FileReader(ACCOUNT_FILE))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                if (partes.length == 2 && partes[0].equals(idUsuario)) {
-                    double saldoAtual = Double.parseDouble(partes[1]);
-                    if (valor > saldoAtual) {
-                        System.out.println("❌ Saldo indisponível para saque.");
-                        return;
-                    }
-                    double novoSaldo = saldoAtual - valor;
-                    contasAtualizadas.add(idUsuario + ", " + String.format("%.2f", novoSaldo));
-                    encontrado = true;
-                } else {
-                    contasAtualizadas.add(linha);
+        for (BankAccount conta : contas){
+            if (conta.getId().equals(idUsuario)) {
+                if (valor > conta.getSaldo()) {
+                    System.out.println("❌ Saldo insuficiente.");
+                    return;
                 }
+                conta.setSaldo(conta.getSaldo() - valor);
+                encontrado = true;
+                break;
             }
-        } catch (IOException e) {
-            System.out.println("Erro ao ler contas: " + e.getMessage());
-            return;
         }
-
-        if (!encontrado) {
+        if (encontrado) {
+            salvarContas(contas);
+            System.out.println("✅ Saque realizado com sucesso.");
+        } else {
             System.out.println("❌ Conta não encontrada.");
-            return;
         }
-
-        escreverContas(contasAtualizadas, "✅ Saque realizado com sucesso.");
-        TransactionLogger.registrar("[SAQUE] ID: " + idUsuario + " | Valor: R$ " + String.format("%.2f", valor));
     }
 
     public void transferirPorID(String idEnviou, String idRecebeu, double valor) {
         if (isValorInvalido(valor)) return;
 
-        List<String> contasAtualizadas = new ArrayList<>();
-        boolean encontrouRemetente = false;
-        boolean encontrouDestinatario = false;
+        List<BankAccount> contas = carregarContas();
+        BankAccount Remetente = null;
+        BankAccount Destinatario = null;
 
-        try (BufferedReader leitor = new BufferedReader(new FileReader(ACCOUNT_FILE))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                String id = partes[0];
-                double saldo = Double.parseDouble(partes[1].replace(",", "."));
-
-                if (id.equals(idEnviou)) {
-                    if (valor > saldo) {
-                        System.out.println("❌ Saldo indisponível para transferência.");
-                        return;
-                    }
-                    double novoSaldo = saldo - valor;
-                    contasAtualizadas.add(id + ", " + String.format(Locale.US, "%.2f", novoSaldo));
-                    encontrouRemetente = true;
-                } else if (id.equals(idRecebeu)) {
-                    double novoSaldo = saldo + valor;
-                    contasAtualizadas.add(id + ", " + String.format(Locale.US, "%.2f", novoSaldo));
-                    encontrouDestinatario = true;
-                } else {
-                    contasAtualizadas.add(linha);
-                }
+        for (BankAccount conta : contas) {
+            if (conta.getId().equals(idEnviou)) {
+                Remetente = conta;
+            } else if (conta.getId().equals(idRecebeu)) {
+                Destinatario = conta;
             }
-        } catch (IOException e) {
-            System.out.println("Erro ao ler contas: " + e.getMessage());
-            return;
         }
 
-        if (!encontrouRemetente || !encontrouDestinatario) {
+        if (Remetente == null || Destinatario == null) {
             System.out.println("❌ Uma das contas não foi encontrada.");
             return;
         }
 
-        escreverContas(contasAtualizadas, "✅ Transferência realizada com sucesso.");
-        TransactionLogger.registrarTransferencia(idEnviou, idRecebeu, valor);
+        if ( Remetente.getSaldo() < valor) {
+            System.out.println("❌ Saldo insuficiente para transferência.");
+            return;
+        }
+
+        Remetente.setSaldo(Remetente.getSaldo() - valor);
+        Destinatario.setSaldo(Destinatario.getSaldo() + valor);
+        salvarContas(contas);
+        System.out.println("✅ Transferência realizada com sucesso.");
     }
 
-    private void escreverContas(List<String> contas, String mensagemSucesso) {
-        try (BufferedWriter escritor = new BufferedWriter(new FileWriter(ACCOUNT_FILE, false))) {
-            for (String conta : contas) {
-                escritor.write(conta);
-                escritor.newLine();
-            }
-            System.out.println(mensagemSucesso);
+
+    /*============METODOS AUXILIARES==============*/
+
+    private List<BankAccount> carregarContas(){
+        try (Reader reader = new FileReader(ACCOUNT_FILE)) {
+            Type tipoLista = new TypeToken<List<BankAccount>>(){}.getType();
+            List<BankAccount> contas = gson.fromJson(reader, tipoLista);
+            return contas != null ? contas : new ArrayList<>();
         } catch (IOException e) {
-            System.out.println("Erro ao atualizar o saldo: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private void salvarContas (List<BankAccount> contas) {
+        try (Writer writer = new FileWriter(ACCOUNT_FILE)) {
+            gson.toJson(contas, writer);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar contas: " + e.getMessage());
         }
     }
 }

@@ -8,18 +8,35 @@ import java.io.*;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class AccountServices {
     private static final String ACCOUNT_FILE = "Accounts.json";
+    private static final String CADASTRO_FILE = "Cadastro.json";
     private final Gson gson = new Gson();
 
     public void criarContaBanco(String idUsuario) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("Accounts.txt", true))) {
-            writer.write(idUsuario + ", 0.0");
-            writer.newLine();
-        } catch (IOException e) {
-            System.out.println("Erro ao criar conta bancária: " + e.getMessage());
+        List<BankAccount> contas = carregarContas();
+        contas.add(new BankAccount(idUsuario, 0.0));
+        salvarContas(contas);
+    }
+
+    // Mostra o saldo da conta pelo ID
+    public void mostrarSaldo(String id) {
+        for(BankAccount conta : carregarContas()) {
+            if(conta.getId().equals(id)) {
+                System.out.printf("💰 Saldo atual: R$ %.2f%n", conta.getSaldo());
+                return;
+            }
         }
+        System.out.println("❌ Conta não encontrada.");
+    }
+
+    // Exclui a conta do usuário nos dois arquivos
+    public void deletarConta(String id) {
+        excluirPorID(ACCOUNT_FILE, id, BankAccount.class);
+        excluirLinhaPorID(CADASTRO_FILE, id);
+        System.out.println("✅ Conta removida com sucesso!");
     }
 
     // Menu principal do usuário
@@ -67,28 +84,48 @@ public class AccountServices {
         } while (option != 0);
     }
 
-    // Mostra o saldo da conta pelo ID
-    public void mostrarSaldo(String id) {
-        try (BufferedReader leitor = new BufferedReader(new FileReader("Accounts.txt"))) {
-            String linha;
-            while ((linha = leitor.readLine()) != null) {
-                String[] partes = linha.split(", ");
-                if (partes[0].equals(id)) {
-                    System.out.println("💰 Saldo atual: R$" + partes[1]);
-                    return;
-                }
-            }
-            System.out.println("Conta não encontrada.");
+    /*===========AUXILIAR METHODS===============*/
+
+    private List<BankAccount> carregarContas(){
+        try(Reader reader = new FileReader(ACCOUNT_FILE)){
+            Type listType = new TypeToken<List<BankAccount>>(){}.getType();
+            List<BankAccount> contas = gson.fromJson(reader, listType);
+            return contas != null ? contas : new ArrayList<>();
         } catch (IOException e) {
-            System.out.println("Erro ao verificar saldo: " + e.getMessage());
+            return new ArrayList<>();
         }
     }
 
-    // Exclui a conta do usuário nos dois arquivos
-    public void deletarConta(String id) {
-        excluirLinhaPorID("Cadastro.txt", id);
-        excluirLinhaPorID("Accounts.txt", id);
-        System.out.println("✅ Conta removida com sucesso!");
+    private void salvarContas(List<BankAccount> contas) {
+        try (Writer writer = new FileWriter(ACCOUNT_FILE)) {
+            gson.toJson(contas, writer);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar contas: " + e.getMessage());
+        }
+    }
+
+    private <T> void excluirPorID(String arquivo, String id, Class<T> clazz){
+        try{
+            List<T> objetos;
+            try(Reader reader = new FileReader(arquivo)) {
+                Type tipo = TypeToken.getParameterized(List.class, clazz).getType();
+                objetos = gson.fromJson(reader, tipo);
+            }
+
+            if(objetos != null){
+                objetos.removeIf(obj -> {
+                    if (clazz == BankAccount.class) {
+                        return ((BankAccount) obj).getId().equals(id);
+                    }
+                    return false;
+                });
+                try (Writer writer = new FileWriter(arquivo)){
+                    gson.toJson(objetos, writer);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao excluir do arquivo JSON: " + e.getMessage());
+        }
     }
 
     // Função genérica para excluir linha de um arquivo
