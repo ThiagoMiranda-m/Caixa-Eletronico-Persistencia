@@ -26,16 +26,6 @@ public class TransactionLogger {
         salvarHistorico(historico);
     }
 
-    public  void registrarTransferencia(String idUsuario, String idUsuario2, String tipo , double valor) {
-        List<Transacao> historico = carregarHistorico();
-
-        String dataHora = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date());
-        Transacao transacao = new Transacao(idUsuario, idUsuario2, tipo, valor , dataHora);
-
-        historico.add(transacao);
-        salvarHistorico(historico);
-    }
-
     private List<Transacao> carregarHistorico(){
         try (Reader reader = new FileReader(LOG_FILE)){
             Type tipoLista = new TypeToken<List<Transacao>>() {}.getType();

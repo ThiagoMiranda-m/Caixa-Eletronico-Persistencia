@@ -104,7 +104,8 @@ public class BankOperations {
         Destinatario.setSaldo(Destinatario.getSaldo() + valor);
         salvarContas(contas);
         System.out.println("✅ Transferência realizada com sucesso.");
-        logger.registrarTransferencia(idEnviou, idRecebeu, "Transferência", valor);
+        logger.registrarTransacao(idEnviou, "Transferência realizada", valor);
+        logger.registrarTransacao(idRecebeu, "Transferência recebida", valor);
     }
 
 
